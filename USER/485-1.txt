@@ -1,0 +1,121 @@
+
+
+
+
+
+
+ GPIO_InitTypeDef GPIO_InitStructure;
+    USART_InitTypeDef USART_InitStructure;
+ 	NVIC_InitTypeDef NVIC_InitStructure;
+ 
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA|RCC_APB2Periph_GPIOD, ENABLE);//使能GPIOA,D时钟
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE);//使能USART2时钟
+	
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;				 //PD2端口配置
+ 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP; 		 //推挽输出
+ 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+ 	GPIO_Init(GPIOD, &GPIO_InitStructure);
+ 
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;	//PA2
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;	//复用推挽
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;//PA3
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING; //浮空输入
+	GPIO_Init(GPIOA, &GPIO_InitStructure);  
+
+	RCC_APB1PeriphResetCmd(RCC_APB1Periph_USART2,ENABLE);//复位串口2
+	RCC_APB1PeriphResetCmd(RCC_APB1Periph_USART2,DISABLE);//停止复位
+ 
+	
+ #ifdef EN_USART2_RX		  	//如果使能了接收
+	USART_InitStructure.USART_BaudRate = bound;//波特率设置
+	USART_InitStructure.USART_WordLength = USART_WordLength_8b;//8位数据长度
+	USART_InitStructure.USART_StopBits = USART_StopBits_1;//一个停止位
+	USART_InitStructure.USART_Parity = USART_Parity_No;///奇偶校验位
+	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;//无硬件数据流控制
+	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;//收发模式
+
+    USART_Init(USART2, &USART_InitStructure); ; //初始化串口
+  
+	NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn; //使能串口2中断
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1; //先占优先级1级
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1; //从优先级2级
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE; //使能外部中断通道
+	NVIC_Init(&NVIC_InitStructure); //根据NVIC_InitStruct中指定的参数初始化外设NVIC寄存器
+ 
+    USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);//开启中断
+   
+    USART_Cmd(USART2, ENABLE);                    //使能串口 
+
+ #endif
+
+  RS485_TX_EN=0;			//默认为接收模式
+
+
+
+
+
+
+TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE); //时钟使能
+	
+	//定时器TIM3初始化
+	TIM_TimeBaseStructure.TIM_Period = 1000-1; //设置在下一个更新事件装入活动的自动重装载寄存器周期的值	
+	TIM_TimeBaseStructure.TIM_Prescaler =72-1; //设置用来作为TIMx时钟频率除数的预分频值
+	TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1; //设置时钟分割:TDTS = Tck_tim
+	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;  //TIM向上计数模式
+	TIM_TimeBaseInit(TIM3, &TIM_TimeBaseStructure); //根据指定的参数初始化TIMx的时间基数单位
+ 
+	TIM_ITConfig(TIM3,TIM_IT_Update,ENABLE ); //使能指定的TIM3中断,允许更新中断(14.4.4  中断有更新中断  输入/捕获中断等)
+
+	//中断优先级NVIC设置  主函数预先设置分组  分组为2   2抢断优先级 2响应优先级
+	NVIC_InitStructure.NVIC_IRQChannel = TIM3_IRQn;  //TIM3中断
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;  //先占优先级0级
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;  //从优先级3级
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE; //IRQ通道被使能
+	NVIC_Init(&NVIC_InitStructure);  //初始化NVIC寄存器
+
+
+	TIM_Cmd(TIM3, ENABLE);  //使能TIMx				
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 

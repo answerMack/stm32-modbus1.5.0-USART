@@ -1,0 +1,115 @@
+
+	
+void PID_Init(int SETtemp)  //启动时，PID的参数值应该从保存上次值的存储器空间读取出来。在此直接设定
+{
+    PP->Set_temperature=SETtemp;    //用户设定值
+	PP->proportion=20;
+	PP->integral=5000;   //积分系数
+	PP->differential=1200;   //微分系数
+	PP->T=1000;    //PP计算周期（采样周期)
+    PP->error_current=0.0;
+	PP->error_last=0;
+	PP->error_sum=0;
+	PP->pid_proportion_out=0;
+	PP->pid_integral_out=0;
+	PP->pid_differential_out=0;
+	PP->pid_out=0;
+}	
+
+	
+float pid_control(PID *PP,float current_temp){
+static float PID_ZL=0.0;
+	float result=0.0;
+	float A0,A1,A2;
+	PP->error_current = PP->Set_temperature - PP->Current_temperature;
+    if(PP->error_current>20)PWM_Out(0);
+    else if(PP->error_current<-20)PWM_Out(1);
+    else if(PP->error_current>10 && PP->error_current<20)PWM_Out(2);
+    else if(PP->error_current>-20 && PP->error_current<-10)PWM_Out(3);
+    else if(PP->error_current>-20 && PP->error_current<-10)PWM_Out(3);
+	/*==============
+	增量式PID算法 增量式PID需每次叠加
+	================*/
+    else if(PP->error_current<10 && PP->error_current>-10){
+         A0=PP->proportion * (1+ PP->T/PP->integral +PP->differential/PP->T);
+		 A1=-PP->proportion * (1+ 2*PP->differential/PP->T);
+		 A2=PP->proportion * (PP->differential/PP->T);
+		result =A0 * PP->error_current + A1 * PP->error_last +A2 * PP->error_sum ;
+		result += PID_ZL;
+		if (result>900){
+		       if(PP->error_current>0)PWM_Out(0);
+			   else PWM_Out(1);
+		}
+		else if (result<-5){
+		       if(PP->error_current>0)PWM_Out(0);
+			   else PWM_Out(1);
+		}
+		else if (-5<result&&result<5){
+		        PWM_Out(4);
+		}	
+		else if (result>5&&result<900){
+			if(PP->error_current>0)PWM_CONTROL(result);
+			else PWM_CONTROL(-result);
+		}
+		
+	}
+	
+	
+	PID_ZL=result;
+	PP->error_sum=PP->error_last;
+    PP->error_last=PP->error_current;
+	return result;
+}
+
+
+/*==============
+10度以内  PID控制	判断result范围，确定占空比	
+=============*/
+void PWM_CONTROL(float SUM){
+int a=0;
+	a=SUM;
+if (a>0)TIM_SetCompare3(TIM3,a);
+else TIM_SetCompare1(TIM3,-a);
+}
+
+
+
+
+void PWM_Out(u8 m){
+
+switch(m)
+	{
+/*=========================================
+		tim_ch3--加热    tim_ch1--冷却
+20度差值： 全功：0：加热不冷却  1：冷却不加热
+10-20度之间   半功热	
+===========================================*/
+	 	case 0 :
+				TIM_SetCompare3(TIM3,0);
+		        TIM_SetCompare1(TIM3,900);
+		        break;	
+		case 1 : 
+				TIM_SetCompare3(TIM3,900);
+		        TIM_SetCompare1(TIM3,0);
+				break;	
+		case 2 : 
+				TIM_SetCompare1(TIM3,800);
+		        TIM_SetCompare3(TIM3,449);
+				break;	
+		case 3 : 
+				TIM_SetCompare1(TIM3,449);
+		        TIM_SetCompare3(TIM3,800);
+				break;	
+        case 4 : //全关
+				TIM_SetCompare1(TIM3,900);
+		        TIM_SetCompare3(TIM3,900);
+				break;	
+        case 5 : //全开
+				TIM_SetCompare1(TIM3,0);
+		        TIM_SetCompare3(TIM3,0);
+				break;			
+		
+	}	
+
+}
+
